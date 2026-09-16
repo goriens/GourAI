@@ -1,0 +1,51 @@
+# ========================
+# GourAI .gitignore
+# ========================
+
+# --- Agent / IDE ---
+.ai/
+.gemini/
+.vscode/
+.idea/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# --- Virtual Environment ---
+venv/
+env/
+.env
+.venv/
+
+# --- PyTorch / Model Artifacts ---
+*.pt
+*.pth
+*.onnx
+*.safetensors
+
+# --- Data (large binary files) ---
+data/input.txt
+data/*.bin
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Notes (personal, not for repo) ---
+notes/
