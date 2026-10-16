@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.vscode
+.idea
+data/*.bin
+data/input.txt
+.obsidian
+notes/
+.ai/

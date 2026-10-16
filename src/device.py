@@ -19,6 +19,11 @@ def get_device(requested_device: str = "auto") -> torch.device:
     elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         return torch.device("mps")
     else:
+        if hasattr(os, "cpu_count") and os.cpu_count():
+            try:
+                torch.set_num_threads(os.cpu_count())
+            except Exception:
+                pass
         return torch.device("cpu")
 
 

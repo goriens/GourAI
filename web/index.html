@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GourAI V1 — Neural Playground & Chat Studio</title>
+  <meta name="description" content="Interactive Web Playground and Chat Studio for GourAI: 10.8M Decoder-only Transformer built from scratch." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="nav-container">
+      <div class="brand">
+        <span class="logo-icon">🍛</span>
+        <div class="brand-text">
+          <div class="brand-title">GourAI <span class="version-tag">V1.0</span></div>
+          <div class="brand-sub">10.8M Transformer &bull; Scratch to Cloud</div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="mode-nav">
+        <button id="tab-chat" class="nav-tab active" onclick="switchMode('chat')">
+          <span class="tab-icon">💬</span> Chat Studio
+        </button>
+        <button id="tab-playground" class="nav-tab" onclick="switchMode('playground')">
+          <span class="tab-icon">✍️</span> Playground
+        </button>
+        <button id="tab-arch" class="nav-tab" onclick="openArchModal()">
+          <span class="tab-icon">🏗️</span> Architecture
+        </button>
+      </nav>
+
+      <!-- System Status -->
+      <div class="status-group">
+        <div class="status-badge" id="status-badge">
+          <span class="status-dot"></span>
+          <span id="status-text">Connecting...</span>
+        </div>
+        <div class="device-badge" id="device-badge">CPU</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-layout">
+    <!-- Left: Interaction Area (Chat or Playground) -->
+    <section class="workspace-panel">
+      <!-- 1. CHAT MODE -->
+      <div id="chat-container" class="view-mode active">
+        <div class="chat-header">
+          <div class="chat-title-group">
+            <h2>Shakespeare Chat Studio</h2>
+            <p>Converse directly with GourAI V1 autoregressive token predictor.</p>
+          </div>
+          <button class="clear-btn" onclick="clearChat()" title="Reset chat history">🧹 Reset</button>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+          <!-- System Welcome Message -->
+          <div class="message-bubble bot-message">
+            <div class="bubble-avatar">🍛</div>
+            <div class="bubble-content">
+              <div class="bubble-author">GourAI Assistant</div>
+              <div class="bubble-text">
+                Hark, traveler! I am GourAI V1, a 10.8M parameter Transformer language model built from scratch in PyTorch. Speak to me, and I shall weave verses from Shakespeare's realm.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Prompt Chips -->
+        <div class="quick-chips">
+          <span class="chips-label">Try:</span>
+          <button class="chip" onclick="sendChipPrompt('ROMEO:\nLady, by yonder blessed moon I vow')">🌙 "Lady, by yonder moon"</button>
+          <button class="chip" onclick="sendChipPrompt('KING RICHARD:\nNow is the winter of our discontent')">❄️ "Winter of our discontent"</button>
+          <button class="chip" onclick="sendChipPrompt('To be, or not to be, that is the question:')">🎭 "To be, or not to be"</button>
+          <button class="chip" onclick="sendChipPrompt('What is honour? A word. What is in that word?')">⚔️ "What is honour?"</button>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="chat-input-wrapper">
+          <textarea
+            id="chat-input"
+            rows="1"
+            placeholder="Type your message or prompt here... (Shift+Enter for newline)"
+            onkeydown="handleChatKey(event)"
+          ></textarea>
+          <button id="send-btn" class="send-button" onclick="sendChatMessage()">
+            <span class="send-icon">➤</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. PLAYGROUND MODE -->
+      <div id="playground-container" class="view-mode">
+        <div class="playground-header">
+          <div class="chat-title-group">
+            <h2>Autoregressive Playground</h2>
+            <p>Prompt completion with real-time token highlighting and generation speed metering.</p>
+          </div>
+          <button class="clear-btn" onclick="clearPlayground()">🧹 Clear</button>
+        </div>
+
+        <!-- Prompt Textarea -->
+        <div class="field-label">SEED PROMPT:</div>
+        <div class="prompt-box-wrapper">
+          <textarea id="prompt-input" rows="4" placeholder="Enter seed text prompt here...">ROMEO:
+Give me my Sin again.</textarea>
+        </div>
+
+        <div class="playground-actions">
+          <button id="generate-btn" class="primary-btn" onclick="runPlaygroundGenerate()">
+            <span class="btn-icon">⚡</span> Generate Stream
+          </button>
+          <button id="stop-btn" class="secondary-btn" onclick="stopGeneration()" disabled>
+            <span class="btn-icon">⏹</span> Stop
+          </button>
+        </div>
+
+        <!-- Output Box -->
+        <div class="output-wrapper">
+          <div class="field-label output-label">
+            <span>COMPLETION STREAM:</span>
+            <span id="token-counter" class="token-counter">0 tokens</span>
+          </div>
+          <div id="output-display" class="output-display">
+            <span class="prompt-echo" id="prompt-echo"></span><span class="streamed-tokens" id="streamed-tokens"></span><span class="typewriter-cursor" id="cursor"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Speed & Telemetry Bar -->
+      <div class="telemetry-bar">
+        <div class="metric-card">
+          <div class="metric-label">GENERATION SPEED</div>
+          <div class="metric-val" id="metric-speed">-- <span class="unit">tok/s</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">TOKENS GENERATED</div>
+          <div class="metric-val" id="metric-tokens">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">ELAPSED TIME</div>
+          <div class="metric-val" id="metric-time">0.0 <span class="unit">s</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">ACTIVE DEVICE</div>
+          <div class="metric-val" id="metric-device">CPU</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Hyperparameters & Control Panel -->
+    <aside class="control-panel">
+      <div class="panel-card">
+        <h3 class="panel-title">Sampling Presets</h3>
+        <div class="presets-grid">
+          <button class="preset-btn" onclick="applyPreset('creative')">
+            <span class="preset-emoji">🎨</span>
+            <span class="preset-name">Creative</span>
+            <span class="preset-desc">Temp 1.1 &bull; High variance</span>
+          </button>
+          <button class="preset-btn active" onclick="applyPreset('balanced')">
+            <span class="preset-emoji">⚖️</span>
+            <span class="preset-name">Balanced</span>
+            <span class="preset-desc">Temp 0.8 &bull; Default</span>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('precise')">
+            <span class="preset-emoji">🎯</span>
+            <span class="preset-name">Precise</span>
+            <span class="preset-desc">Temp 0.3 &bull; Low variance</span>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('greedy')">
+            <span class="preset-emoji">🤖</span>
+            <span class="preset-name">Greedy</span>
+            <span class="preset-desc">Temp 0.0 &bull; Argmax</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hyperparameters Sliders -->
+      <div class="panel-card">
+        <h3 class="panel-title">Hyperparameters</h3>
+
+        <!-- Temperature -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="temp-slider">Temperature</label>
+            <span class="slider-val" id="temp-val">0.8</span>
+          </div>
+          <input
+            type="range"
+            id="temp-slider"
+            min="0.0"
+            max="1.5"
+            step="0.05"
+            value="0.8"
+            oninput="updateParam('temp', this.value)"
+          />
+          <div class="slider-caption">Controls variance (0.0 = greedy, 1.2 = creative).</div>
+        </div>
+
+        <!-- Top-K -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="topk-slider">Top-K Filtering</label>
+            <span class="slider-val" id="topk-val">40</span>
+          </div>
+          <input
+            type="range"
+            id="topk-slider"
+            min="0"
+            max="65"
+            step="1"
+            value="40"
+            oninput="updateParam('topk', this.value)"
+          />
+          <div class="slider-caption">Keep only top K most probable tokens (0 = off).</div>
+        </div>
+
+        <!-- Top-P (Nucleus) -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="topp-slider">Top-P (Nucleus)</label>
+            <span class="slider-val" id="topp-val">0.90</span>
+          </div>
+          <input
+            type="range"
+            id="topp-slider"
+            min="0.1"
+            max="1.0"
+            step="0.05"
+            value="0.90"
+            oninput="updateParam('topp', this.value)"
+          />
+          <div class="slider-caption">Cumulative probability mass cutoff.</div>
+        </div>
+
+        <!-- Max Tokens -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="tokens-slider">Max Tokens</label>
+            <span class="slider-val" id="tokens-val">120</span>
+          </div>
+          <input
+            type="range"
+            id="tokens-slider"
+            min="10"
+            max="300"
+            step="10"
+            value="120"
+            oninput="updateParam('tokens', this.value)"
+          />
+          <div class="slider-caption">Length of generated sequence.</div>
+        </div>
+      </div>
+
+      <!-- Model Specs Card -->
+      <div class="panel-card specs-card">
+        <h3 class="panel-title">Model Specifications</h3>
+        <div class="specs-list">
+          <div class="spec-row">
+            <span class="spec-label">Parameters</span>
+            <span class="spec-value" id="spec-params">10,659,072 (~10.7M)</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Layers (Blocks)</span>
+            <span class="spec-value" id="spec-layers">6</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Attention Heads</span>
+            <span class="spec-value" id="spec-heads">6 (64 dim/head)</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Embedding Dim</span>
+            <span class="spec-value" id="spec-embd">384</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Context Window</span>
+            <span class="spec-value" id="spec-context">256 tokens</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Weight Tying</span>
+            <span class="spec-value highlight">wte == lm_head</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Architecture Modal -->
+  <div id="arch-modal" class="modal-backdrop" onclick="closeArchModal(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🏗️ GourAI V1 Architecture Flow</h3>
+        <button class="modal-close-btn" onclick="closeArchModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <pre class="ascii-diagram">
+GourAILM (~10.8M parameters)
+├── 1. Token Embedding (wte: 65 → 384) + Positional Embedding (wpe: 256 → 384)
+├── 2. Dropout (p = 0.2)
+├── 3. 6× Transformer Blocks:
+│   ├── LayerNorm 1 (Pre-LN, 384)
+│   ├── Causal Multi-Head Self-Attention (6 heads, 64 dim/head)
+│   │   ├── Q, K, V Projections (384 → 1152)
+│   │   ├── Scaled Dot-Product: (Q · K^T) / 8 + Causal Mask
+│   │   └── Output Projection (384 → 384) + Residual Highway: x = x + Attn
+│   ├── LayerNorm 2 (Pre-LN, 384)
+│   └── Feed-Forward MLP (GELU, 4x Expansion):
+│       ├── Linear (384 → 1536) → GELU
+│       └── Linear (1536 → 384) + Residual Highway: x = x + MLP
+├── 4. Final LayerNorm (384)
+└── 5. LM Head (384 → 65, Tied with Token Embedding)
+        </pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

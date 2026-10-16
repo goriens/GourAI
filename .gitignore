@@ -30,6 +30,8 @@ env/
 *.pth
 *.onnx
 *.safetensors
+# Allow deployment inference weights (40MB, under 100MB limit)
+!checkpoints/model.pt
 
 # --- Data (large binary files) ---
 data/input.txt
